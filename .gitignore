@@ -2,6 +2,7 @@
 # Python cache / bytecode
 # ----------------------------
 __pycache__/
+*/__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -14,8 +15,9 @@ __pycache__/
 # ----------------------------
 # Experiment outputs
 # ----------------------------
-git_results/
+gif_results/
 important_checkpoints/
+*.csv
 
 # ----------------------------
 # Optional: common ML artifacts
