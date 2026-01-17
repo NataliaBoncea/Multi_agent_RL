@@ -1,0 +1,34 @@
+# ----------------------------
+# Python cache / bytecode
+# ----------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ----------------------------
+# Images
+# ----------------------------
+*.png
+
+# ----------------------------
+# Experiment outputs
+# ----------------------------
+git_results/
+important_checkpoints/
+
+# ----------------------------
+# Optional: common ML artifacts
+# ----------------------------
+*.pt
+*.pth
+*.ckpt
+*.log
+
+# ----------------------------
+# OS / editor noise
+# ----------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
