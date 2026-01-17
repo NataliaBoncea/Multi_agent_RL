@@ -16,7 +16,15 @@ class Agent:
 
     def move(self, action_idx, neighbors):
         delta_phi = self.config.delta_yaw_options[action_idx]
+
+        # Safety: enforce paper turning limit
+        if abs(delta_phi) > self.config.max_yaw:
+            delta_phi = math.copysign(self.config.max_yaw, delta_phi)
+
         self.phi += delta_phi
+
+        # Keep phi in [-pi, pi] for numerical stability
+        self.phi = (self.phi + math.pi) % (2 * math.pi) - math.pi
         
         fx, fy = 0, 0
         collision_penalty = 0
@@ -34,7 +42,18 @@ class Agent:
                 fy += factor * dy
             
             if dist <= self.config.Rs:
-                collision_penalty += self.config.rc 
+                dist_penalty = self.config.coll_alpha * dist
+                hx, hy = math.cos(self.phi), math.sin(self.phi)
+                Rx, Ry = 0.0, 1.0
+
+                dot = hx * Rx + hy * Ry
+                dot = max(-1.0, min(1.0, dot))
+
+                angle = math.acos(dot)
+                dir_penalty = (self.config.coll_beta / math.pi) * angle
+
+                collision_penalty -= (dist_penalty + dir_penalty)
+
         
         # Update Position (Eq 4)
         next_x = self.x + self.config.Vr * math.cos(self.phi) + fx

@@ -17,7 +17,7 @@ class EvalEnv:
         self.agents = []
         self.targets = []
         self.found_targets = []
-        self.input_dim = 6
+        self.input_dim = 8
         self.output_dim = 3
         self.device = device
         
@@ -52,7 +52,7 @@ class EvalEnv:
 
     def reset(self):
         self.agents = []
-        starts = self.getstarts(self.conf.Nr, paperdef="centralized") 
+        starts = self.getstarts(self.conf.Nr, paperdef=self.conf.start_mode) 
         for i in range(self.conf.Nr):
             pos = starts[i % len(starts)]
             ag = Agent(i, pos[0], pos[1], self.conf)
@@ -71,24 +71,49 @@ class EvalEnv:
         obs_list = []
         for ag in self.agents:
             d_t = 100.0
+            nearest_t = None
+
+            # Distance to nearest UNFOUND target
             for i, t in enumerate(self.targets):
                 if not self.found_targets[i]:
                     d = math.sqrt((ag.x - t[0])**2 + (ag.y - t[1])**2)
-                    d_t = min(d_t, d)
+                    if d < d_t:
+                        d_t = d
+                        nearest_t = t
             d_a = 100.0
             for other in self.agents:
                 if other.id != ag.id:
                     d = math.sqrt((ag.x - other.x)**2 + (ag.y - other.y)**2)
                     d_a = min(d_a, d)
-            obs_list.append([ag.x/self.conf.WIDTH, ag.y/self.conf.HEIGHT, math.cos(ag.phi), math.sin(ag.phi), d_t/100.0, d_a/100.0])
+            # Relative bearing to nearest target (in agent's frame)
+            if nearest_t is None:
+                rel_cos, rel_sin = 0.0, 0.0
+            else:
+                dx = nearest_t[0] - ag.x
+                dy = nearest_t[1] - ag.y
+                ang_to_t = math.atan2(dy, dx)
+                rel = ang_to_t - ag.phi
+                rel_cos, rel_sin = math.cos(rel), math.sin(rel)
+
+            obs_list.append([
+                ag.x/self.conf.WIDTH,
+                ag.y/self.conf.HEIGHT,
+                math.cos(ag.phi),
+                math.sin(ag.phi),
+                d_t/100.0,
+                d_a/100.0,
+                rel_cos,
+                rel_sin
+            ])
         return torch.tensor(obs_list, dtype=torch.float32, device=self.device)
 
     def select_actions(self, obs_batch):
         with torch.no_grad():
             h_values, new_hidden = self.policy_net(obs_batch, self.batch_hidden)
             self.batch_hidden = new_hidden.detach()
-            h_probs = torch.softmax(h_values, dim=1)
-            actions_indices = torch.argmax(h_probs, dim=1)
+            # h_probs = torch.softmax(h_values, dim=1)
+            # actions_indices = torch.argmax(h_probs, dim=1)
+            actions_indices = torch.argmax(h_values, dim=1)
         return actions_indices.tolist()
 
     # --- UPDATED STEP FUNCTION TO CALCULATE REWARDS ---

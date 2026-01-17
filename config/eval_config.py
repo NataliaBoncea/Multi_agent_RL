@@ -20,7 +20,7 @@ class EvalConfig:
         self.Rs = 1.0    
         self.Da = 3.0    
         self.fa = 0.8    
-        self.pd = 0.9    
+        self.pd = 0.9     
         
         # Rewards (Needed for "Average Reward" metric)
         self.r1 = 5.0    # Found target
@@ -29,6 +29,16 @@ class EvalConfig:
         self.rm = -1     # Movement cost
         self.rc = -5.0   # Collision
         self.rho = 5.0   # Presence/Time penalty factor
+
+        # Agents
+        self.coll_alpha = 1.0
+        self.coll_beta = 0.1
+
+        # Environment setting
+        self.start_mode = "centralized"
         
         self.hidden_size = 64 
-        self.ckpt_dir = "checkpoint_coverage"
+        self.ckpt_dir = "checkpoints_coverage_dist"
+
+        # Personal touch
+        self.use_coverage_reward = False

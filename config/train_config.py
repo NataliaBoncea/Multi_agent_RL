@@ -12,7 +12,7 @@ class TrainConfig:
         # Motion
         self.Vr = 1.0 # Search velocity 
         self.max_yaw = math.pi / 4 # Max yaw angle 
-        self.delta_yaw_options = [0, math.radians(10), math.radians(-10)] # Heading adjustments
+        self.delta_yaw_options = [0, math.radians(20), math.radians(-20)] # Heading adjustments
         
         # Sensors
         self.Rv = 14.0   # Detection radius 
@@ -38,6 +38,10 @@ class TrainConfig:
         self.lr = 0.0005
         self.omega2 = 0.95 # Action preference weight 
         self.hidden_size = 64
+
+        # Agents
+        self.coll_alpha = 1.0
+        self.coll_beta = 0.1
         
         # Steps
         self.max_steps = 400      # Max iteration steps 
@@ -48,8 +52,11 @@ class TrainConfig:
         self.epsilon_end = 0.0
         self.epsilon_decay = (self.epsilon_start - self.epsilon_end) / self.num_episodes
         
+        # Environment setting
+        self.start_mode = "distributed"
+
         # System
-        self.ckpt_dir = "checkpoints_coverage"
+        self.ckpt_dir = "checkpoints_coverage_dist"
         self.log_file = "training_log.csv"
         self.save_freq = 50
 

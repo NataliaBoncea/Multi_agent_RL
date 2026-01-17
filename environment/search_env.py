@@ -18,7 +18,8 @@ class SearchEnv:
         self.agents = []
         self.targets = []
         self.found_targets = []
-        self.input_dim = 6
+        # [x,y,cos(phi),sin(phi),d_nearest_target,d_nearest_agent, cos(rel_angle_to_target), sin(rel_angle_to_target)]
+        self.input_dim = 8
         self.output_dim = 3
         self.coverage_grid = np.zeros((self.conf.WIDTH, self.conf.HEIGHT)) # added by us 
         
@@ -29,27 +30,34 @@ class SearchEnv:
         self.batch_hidden = None
         self.saved_agent_params = [] 
 
-    def getstarts(nr_ag):
+    def getstarts(self, nr_ag):
         positions = random.choices(['t','b','l','r'],k=nr_ag)
         starts=[]
         for p in positions:
             if p == 't':
-                starts.append([random.randrange(0,100,1),100])
+                starts.append([random.randrange(0,self.conf.WIDTH,1),self.conf.HEIGHT])
             elif p == 'b':
-                starts.append([random.randrange(0,100,1),0])
+                starts.append([random.randrange(0,self.conf.WIDTH,1),0])
             elif p == 'l':
-                starts.append([0,random.randrange(0,100,1)])
+                starts.append([0,random.randrange(0,self.conf.HEIGHT,1)])
             elif p == 'r':
-                starts.append([100,random.randrange(0,100,1)])
+                starts.append([self.conf.WIDTH,random.randrange(0,self.conf.HEIGHT,1)])
         return starts
         
     def reset(self):
         self.agents = []
-        starts = self.getstarts(self.conf.Nr) # Starting positions 
-        for i in range(self.conf.Nr):
-            pos = starts[i % len(starts)]
-            ag = Agent(i, pos[0], pos[1], self.conf)
-            self.agents.append(ag)
+        if self.conf.start_mode == 'centralized':
+            starts = self.getstarts(1) # Starting positions 
+            for i in range(self.conf.Nr):
+                pos = starts[0]
+                ag = Agent(i, pos[0], pos[1], self.conf)
+                self.agents.append(ag)
+        else:
+            starts = self.getstarts(self.conf.Nr) # Starting positions 
+            for i in range(self.conf.Nr):
+                pos = starts[i % len(starts)]
+                ag = Agent(i, pos[0], pos[1], self.conf)
+                self.agents.append(ag)
             
         self.batch_hidden = self.policy_net.init_hidden(self.conf.Nr)
             
@@ -57,17 +65,22 @@ class SearchEnv:
         for _ in range(self.conf.Nt):
             self.targets.append((random.uniform(5, 95), random.uniform(20, 95)))
         self.found_targets = [False] * self.conf.Nt
+        self.coverage_grid = np.zeros((self.conf.WIDTH, self.conf.HEIGHT), dtype=np.uint8)
         return self.get_observations()
 
     def get_observations(self):
         obs_list = []
         for ag in self.agents:
             d_t = 100.0
+            nearest_t = None
+
             # Distance to nearest UNFOUND target
             for i, t in enumerate(self.targets):
                 if not self.found_targets[i]:
                     d = math.sqrt((ag.x - t[0])**2 + (ag.y - t[1])**2)
-                    d_t = min(d_t, d)
+                    if d < d_t:
+                        d_t = d
+                        nearest_t = t
             d_a = 100.0
             # Distance to nearest agent
             for other in self.agents:
@@ -75,7 +88,26 @@ class SearchEnv:
                     d = math.sqrt((ag.x - other.x)**2 + (ag.y - other.y)**2)
                     d_a = min(d_a, d)
             # Normalize observations
-            obs_list.append([ag.x/self.conf.WIDTH, ag.y/self.conf.HEIGHT, math.cos(ag.phi), math.sin(ag.phi), d_t/100.0, d_a/100.0])
+            # Relative bearing to nearest target (in agent's frame)
+            if nearest_t is None:
+                rel_cos, rel_sin = 0.0, 0.0
+            else:
+                dx = nearest_t[0] - ag.x
+                dy = nearest_t[1] - ag.y
+                ang_to_t = math.atan2(dy, dx)
+                rel = ang_to_t - ag.phi
+                rel_cos, rel_sin = math.cos(rel), math.sin(rel)
+
+            obs_list.append([
+                ag.x/self.conf.WIDTH,
+                ag.y/self.conf.HEIGHT,
+                math.cos(ag.phi),
+                math.sin(ag.phi),
+                d_t/100.0,
+                d_a/100.0,
+                rel_cos,
+                rel_sin
+            ])
         return torch.tensor(obs_list, dtype=torch.float32, device=self.device)
     
     def calculate_area_coverage(self, agent):
@@ -168,7 +200,9 @@ class SearchEnv:
             
             # --- NEW: Area Coverage Reward ---
             # Call the separate function to handle radius exploration
-            r_cover = self.calculate_area_coverage(ag)
+            r_cover = 0.0
+            if getattr(self.conf, "use_coverage_reward", False):
+                r_cover = self.calculate_area_coverage(ag)
             
             # Sum individual rewards
             rewards.append(r_move + r_phys + r_odor + r_cover)
