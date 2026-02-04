@@ -256,7 +256,7 @@ class SearchEnv:
         torch.save(checkpoint, os.path.join(self.conf.ckpt_dir, "ckpt_latest.pth"))
         
     def load_checkpoint(self):
-        latest_path = os.path.join(self.conf.ckpt_dir, "ckpt_latest.pth")
+        latest_path = os.path.join(self.conf.ckpt_dir, "ckpt_ep_999.pth")
         if not os.path.exists(latest_path):
             print("No checkpoint found. Starting from scratch.")
             return 0, [], []
@@ -266,7 +266,7 @@ class SearchEnv:
         self.policy_net.load_state_dict(checkpoint['model_state'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state'])
         self.epsilon = checkpoint['epsilon']
-        start_episode = checkpoint['episode'] + 1
+        start_episode = 1000#checkpoint['episode'] + 1
         history_rewards = checkpoint['rewards']
         history_found = checkpoint['found']
         self.saved_agent_params = checkpoint.get('agent_params', [])
