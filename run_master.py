@@ -78,7 +78,7 @@ def train_and_evaluate_worker(task_params):
         
         # Add this inside the 'for ep in range' loop of train_and_evaluate_worker
         if ep % 5 == 0:
-            print(f"\r[Worker {cfg.WIDTH}x{cfg.WIDTH}] Ep: {ep}/{cfg.num_episodes} | Epsilon: {env_train.epsilon:.2f}", end="", flush=True)
+            print(f"\r[Worker map_{width}_ag_{agents}_tg_{targets}_{mode} Ep: {ep}/{cfg.num_episodes} | Epsilon: {env_train.epsilon:.2f}", end="", flush=True)
     
         if ep % cfg.save_freq == 0 or ep == cfg.num_episodes - 1:
             env_train.save_checkpoint(ep, history_rewards, history_found)

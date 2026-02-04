@@ -29,7 +29,7 @@ class AutoConfig:
         self.rho = 5.0   
         self.r_cover_scale = 0.01 
         self.r_cover_penalty = -0.1
-        self.use_coverage_reward = False # Enabled for the "Improved" architecture
+        self.use_coverage_reward = True # Enabled for the "Improved" architecture
 
         # Agents
         self.coll_alpha = 1.0
